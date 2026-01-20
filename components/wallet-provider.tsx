@@ -10,6 +10,7 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets"
+import { clusterApiUrl } from "@solana/web3.js"
 
 import "@solana/wallet-adapter-react-ui/styles.css"
 
@@ -18,7 +19,13 @@ interface WalletProviderProps {
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  const endpoint = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://api.mainnet-beta.solana.com"
+  const endpoint = useMemo(() => {
+    const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC
+    if (rpcUrl && rpcUrl.startsWith("http")) {
+      return rpcUrl
+    }
+    return clusterApiUrl("devnet")
+  }, [])
 
   const wallets = useMemo(
     () => [

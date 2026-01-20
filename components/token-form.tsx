@@ -24,6 +24,8 @@ export interface TokenFormData {
   totalSupply: string
   description: string
   image: File | null
+  metadataUrl: string
+  metadataMode: "upload" | "url"
   plan: Plan
 }
 
@@ -59,6 +61,8 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
     totalSupply: "1000000000",
     description: "",
     image: null,
+    metadataUrl: "",
+    metadataMode: "upload",
     plan: initialPlan,
   })
 
@@ -97,6 +101,11 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
       </div>
     )
   }
+
+  const isFormValid =
+    formData.name &&
+    formData.symbol &&
+    (formData.metadataMode === "upload" ? formData.image : formData.metadataUrl)
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-8">
@@ -159,7 +168,7 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Description (Optional for URL mode)</Label>
             <Textarea
               id="description"
               placeholder="Describe your token..."
@@ -170,28 +179,59 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Token Image</Label>
-            <div className="flex items-center gap-4">
-              {imagePreview ? (
-                <div className="relative h-20 w-20 overflow-hidden rounded-lg border border-border">
-                  <img src={imagePreview || "/placeholder.svg"} alt="Token preview" className="h-full w-full object-cover" />
-                </div>
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-border bg-muted">
-                  <Upload className="h-6 w-6 text-muted-foreground" />
-                </div>
-              )}
-              <div className="flex-1">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="cursor-pointer"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, or GIF. Max 5MB.</p>
+          <div className="space-y-4">
+            <Label>Metadata Source</Label>
+            <RadioGroup
+              value={formData.metadataMode}
+              onValueChange={(val: "upload" | "url") => setFormData(prev => ({ ...prev, metadataMode: val }))}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="upload" id="mode-upload" />
+                <Label htmlFor="mode-upload">Upload Image (Auto-create JSON)</Label>
               </div>
-            </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="url" id="mode-url" />
+                <Label htmlFor="mode-url">Existing Metadata JSON URL</Label>
+              </div>
+            </RadioGroup>
+
+            {formData.metadataMode === "upload" ? (
+              <div className="space-y-2">
+                <Label>Token Image</Label>
+                <div className="flex items-center gap-4">
+                  {imagePreview ? (
+                    <div className="relative h-20 w-20 overflow-hidden rounded-lg border border-border">
+                      <img src={imagePreview || "/placeholder.svg"} alt="Token preview" className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-border bg-muted">
+                      <Upload className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="cursor-pointer"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, or GIF. Max 5MB.</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="metadataUrl">Metadata JSON URL</Label>
+                <Input
+                  id="metadataUrl"
+                  placeholder="https://mysite.com/metadata.json"
+                  value={formData.metadataUrl}
+                  onChange={(e) => setFormData(prev => ({ ...prev, metadataUrl: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Must be a valid HTTPS URL pointing to a JSON file conforming to Metaplex standard.</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -208,9 +248,8 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
           >
             <Label
               htmlFor="basic"
-              className={`flex cursor-pointer flex-col rounded-lg border p-4 transition-colors ${
-                formData.plan === "basic" ? "border-accent bg-accent/5" : "border-border"
-              }`}
+              className={`flex cursor-pointer flex-col rounded-lg border p-4 transition-colors ${formData.plan === "basic" ? "border-accent bg-accent/5" : "border-border"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="basic" id="basic" />
@@ -226,9 +265,8 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
             </Label>
             <Label
               htmlFor="advanced"
-              className={`flex cursor-pointer flex-col rounded-lg border p-4 transition-colors ${
-                formData.plan === "advanced" ? "border-accent bg-accent/5" : "border-border"
-              }`}
+              className={`flex cursor-pointer flex-col rounded-lg border p-4 transition-colors ${formData.plan === "advanced" ? "border-accent bg-accent/5" : "border-border"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="advanced" id="advanced" />
@@ -249,7 +287,7 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
       <Alert className="border-border bg-muted/50">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          <strong>About Mint Authority:</strong> The mint authority can create more tokens. 
+          <strong>About Mint Authority:</strong> The mint authority can create more tokens.
           Revoking it makes your token supply fixed forever. This cannot be undone.
         </AlertDescription>
       </Alert>
@@ -287,7 +325,7 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
         type="submit"
         size="lg"
         className="w-full"
-        disabled={isCreating || !formData.name || !formData.symbol}
+        disabled={isCreating || !isFormValid}
       >
         {isCreating ? (
           <>

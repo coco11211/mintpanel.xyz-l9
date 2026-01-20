@@ -44,6 +44,9 @@ function SuccessContent() {
     )
   }
 
+  const isDevnet = process.env.NEXT_PUBLIC_SOLANA_RPC?.includes("devnet")
+  const clusterSuffix = isDevnet ? "?cluster=devnet" : ""
+
   return (
     <div className="flex-1 py-12 px-4">
       <div className="mx-auto max-w-2xl space-y-8">
@@ -152,7 +155,7 @@ function SuccessContent() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button asChild className="flex-1">
             <a
-              href={`https://solscan.io/tx/${signature}`}
+              href={`https://solscan.io/tx/${signature}${clusterSuffix}`}
               target="_blank"
               rel="noopener noreferrer"
               className="gap-2"
@@ -162,7 +165,7 @@ function SuccessContent() {
           </Button>
           <Button asChild variant="outline" className="flex-1 bg-transparent">
             <a
-              href={`https://solscan.io/token/${mint}`}
+              href={`https://solscan.io/token/${mint}${clusterSuffix}`}
               target="_blank"
               rel="noopener noreferrer"
               className="gap-2"
