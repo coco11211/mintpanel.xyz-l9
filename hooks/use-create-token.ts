@@ -14,9 +14,10 @@ import {
   TOKEN_PROGRAM_ID,
   AuthorityType,
 } from "@solana/spl-token"
-import { createUmi } from "@metaplex-foundation/umi-bundle-defaults"
-import { publicKey as umiPk } from "@metaplex-foundation/umi"
-import { createMetadataAccountV3 } from "@metaplex-foundation/mpl-token-metadata"
+import {
+  createCreateMetadataAccountV3Instruction,
+  PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID,
+} from "@metaplex-foundation/mpl-token-metadata"
 import type { TokenFormData } from "@/components/token-form"
 
 const BASIC_FEE = 0.03
@@ -29,6 +30,11 @@ export interface CreateTokenResult {
   symbol: string
   mintAuthorityRevoked: boolean
   freezeAuthorityRevoked: boolean
+}
+
+function pk(value: PublicKey | null | undefined, label: string): PublicKey {
+  if (!value) throw new Error(`${label} is missing`)
+  return value
 }
 
 function pow10BigInt(decimals: number): bigint {
@@ -56,11 +62,18 @@ export function useCreateToken() {
     if (formData.image) data.append("image", formData.image)
 
     const response = await fetch("/api/upload-metadata", { method: "POST", body: data })
-    if (!response.ok) throw new Error("Failed to upload metadata")
+    if (!response.ok) {
+      let msg = "Failed to upload metadata"
+      try {
+        const j = await response.json()
+        msg = j?.error || msg
+      } catch {}
+      throw new Error(msg)
+    }
 
     const json = await response.json()
-    const uri = json?.metadataUri as string | undefined
-    if (!uri || !uri.startsWith("http")) throw new Error("Invalid metadata URI returned")
+    const uri = (json?.metadataUri || "") as string
+    if (!uri.startsWith("http")) throw new Error("Invalid metadata URI returned")
     return uri
   }, [])
 
@@ -84,26 +97,36 @@ export function useCreateToken() {
       try {
         feeWallet = new PublicKey(feeWalletStr)
       } catch {
-        setError("Invalid fee wallet address")
+        setError("Invalid NEXT_PUBLIC_FEE_WALLET address")
         return
       }
 
       setIsCreating(true)
 
       try {
-        const metadataUri =
-          formData.metadataMode === "url"
-            ? (formData.metadataUrl || "").trim()
-            : await uploadMetadata(formData)
+        // 1) metadata uri
+        let metadataUri = ""
+        if (formData.metadataMode === "url") {
+          metadataUri = (formData.metadataUrl || "").trim()
+          if (!metadataUri.startsWith("http")) throw new Error("Invalid metadata URL")
+        } else {
+          metadataUri = await uploadMetadata(formData)
+        }
 
-        if (!metadataUri.startsWith("http")) throw new Error("Invalid metadata URL/URI")
-
+        // 2) mint + rent + ata
         const mintKeypair = Keypair.generate()
         const mint = mintKeypair.publicKey
 
         const lamportsForMint = await getMinimumBalanceForRentExemptMint(connection)
         const ata = await getAssociatedTokenAddress(mint, publicKey)
 
+        // 3) metadata PDA (web3.js keys, non-umi)
+        const [metadataPDA] = PublicKey.findProgramAddressSync(
+          [Buffer.from("metadata"), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+          TOKEN_METADATA_PROGRAM_ID
+        )
+
+        // 4) build tx
         const tx = new Transaction()
 
         tx.add(
@@ -119,46 +142,55 @@ export function useCreateToken() {
         tx.add(createInitializeMintInstruction(mint, formData.decimals, publicKey, publicKey))
         tx.add(createAssociatedTokenAccountInstruction(publicKey, ata, publicKey, mint))
 
-        const supply = BigInt(formData.totalSupply) * pow10BigInt(formData.decimals)
-        tx.add(createMintToInstruction(mint, ata, publicKey, supply))
+        const totalSupplyStr = String(formData.totalSupply ?? "").trim()
+        if (!/^\d+$/.test(totalSupplyStr)) throw new Error("Total supply must be a whole number")
 
-        // --- Metadata via Umi builder, then convert to Solana instruction ---
-        const umi = createUmi(connection.rpcEndpoint)
+        const supply = BigInt(totalSupplyStr) * pow10BigInt(formData.decimals)
+        tx.add(createMintToInstruction(mint, ata, publicKey, supply))
 
         const isImmutable = formData.plan === "basic"
 
-        const ix = createMetadataAccountV3(umi, {
-          mint: umiPk(mint.toBase58()),
-          mintAuthority: umiPk(publicKey.toBase58()),
-          payer: umiPk(publicKey.toBase58()),
-          updateAuthority: umiPk(publicKey.toBase58()),
-          data: {
-            name: formData.name,
-            symbol: formData.symbol,
-            uri: metadataUri,
-            sellerFeeBasisPoints: 0,
-            creators: null,
-            collection: null,
-            uses: null,
-          },
-          isMutable: !isImmutable,
-          collectionDetails: null,
-        }).getInstructions()[0]
+        // Create metadata (v2 SDK, no Umi)
+        tx.add(
+          createCreateMetadataAccountV3Instruction(
+            {
+              metadata: metadataPDA,
+              mint,
+              mintAuthority: publicKey,
+              payer: publicKey,
+              updateAuthority: publicKey,
+            },
+            {
+              createMetadataAccountArgsV3: {
+                data: {
+                  name: formData.name,
+                  symbol: formData.symbol,
+                  uri: metadataUri,
+                  sellerFeeBasisPoints: 0,
+                  creators: null,
+                  collection: null,
+                  uses: null,
+                },
+                isMutable: !isImmutable,
+                collectionDetails: null,
+              },
+            }
+          )
+        )
 
-        // Convert Umi instruction to web3.js TransactionInstruction
-        // Umi uses the same shapes; cast is sufficient here.
-        tx.add(ix as any)
-
+        // If basic/immutable: revoke authorities (token immutability side)
         if (isImmutable) {
           tx.add(createSetAuthorityInstruction(mint, publicKey, AuthorityType.MintTokens, null))
           tx.add(createSetAuthorityInstruction(mint, publicKey, AuthorityType.FreezeAccount, null))
         }
 
+        // service fee
+        const fee = isImmutable ? BASIC_FEE : ADVANCED_FEE
         tx.add(
           SystemProgram.transfer({
             fromPubkey: publicKey,
             toPubkey: feeWallet,
-            lamports: Math.floor((isImmutable ? BASIC_FEE : ADVANCED_FEE) * LAMPORTS_PER_SOL),
+            lamports: Math.floor(fee * LAMPORTS_PER_SOL),
           })
         )
 
