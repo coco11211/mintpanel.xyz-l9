@@ -2,12 +2,10 @@
 
 import { useCallback, useMemo, useState } from "react"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
-import {
-  PublicKey,
-  Transaction,
-} from "@solana/web3.js"
+import { PublicKey, Transaction } from "@solana/web3.js"
 import {
   getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
   createMintToInstruction,
   createBurnInstruction,
   createFreezeAccountInstruction,
@@ -49,6 +47,17 @@ export function useManageToken(mintStr: string) {
     return getAssociatedTokenAddress(mint, owner)
   }, [mint])
 
+  const ensureAtaIx = useCallback(async (owner: PublicKey, payer: PublicKey) => {
+    if (!mint) throw new Error("Invalid mint")
+    const ata = await getAta(owner)
+    const info = await connection.getAccountInfo(ata)
+    if (info) return { ata, ix: null as any }
+    return {
+      ata,
+      ix: createAssociatedTokenAccountInstruction(payer, ata, owner, mint, TOKEN_PROGRAM_ID),
+    }
+  }, [mint, getAta, connection])
+
   const submit = useCallback(async (tx: Transaction) => {
     const walletPk = mustPk(publicKey, "Wallet")
     setBusy(true); setError(null); setLastSig(null)
@@ -68,37 +77,32 @@ export function useManageToken(mintStr: string) {
     }
   }, [connection, publicKey, sendTransaction])
 
-  // Mint more (requires connected wallet is mint authority)
   const mintMore = useCallback(async (amountBaseUnits: bigint) => {
     if (!mint) throw new Error("Invalid mint")
     const walletPk = mustPk(publicKey, "Wallet")
-    const ata = await getAta(walletPk)
-    const tx = new Transaction().add(
-      createMintToInstruction(mint, ata, walletPk, amountBaseUnits, [], TOKEN_PROGRAM_ID)
-    )
+    const { ata, ix } = await ensureAtaIx(walletPk, walletPk)
+    const tx = new Transaction()
+    if (ix) tx.add(ix)
+    tx.add(createMintToInstruction(mint, ata, walletPk, amountBaseUnits, [], TOKEN_PROGRAM_ID))
     return submit(tx)
-  }, [mint, publicKey, getAta, submit])
+  }, [mint, publicKey, ensureAtaIx, submit])
 
-  // Burn (burns from connected wallet ATA)
   const burnMine = useCallback(async (amountBaseUnits: bigint) => {
     if (!mint) throw new Error("Invalid mint")
     const walletPk = mustPk(publicKey, "Wallet")
-    const ata = await getAta(walletPk)
-    const tx = new Transaction().add(
-      createBurnInstruction(ata, mint, walletPk, amountBaseUnits, [], TOKEN_PROGRAM_ID)
-    )
+    const { ata, ix } = await ensureAtaIx(walletPk, walletPk)
+    const tx = new Transaction()
+    if (ix) tx.add(ix)
+    tx.add(createBurnInstruction(ata, mint, walletPk, amountBaseUnits, [], TOKEN_PROGRAM_ID))
     return submit(tx)
-  }, [mint, publicKey, getAta, submit])
+  }, [mint, publicKey, ensureAtaIx, submit])
 
-  // Freeze/thaw a target owner's ATA (requires connected wallet is freeze authority)
   const freezeOwner = useCallback(async (ownerStr: string) => {
     if (!mint) throw new Error("Invalid mint")
     const walletPk = mustPk(publicKey, "Wallet")
     const owner = new PublicKey(ownerStr)
     const ata = await getAta(owner)
-    const tx = new Transaction().add(
-      createFreezeAccountInstruction(ata, mint, walletPk, [], TOKEN_PROGRAM_ID)
-    )
+    const tx = new Transaction().add(createFreezeAccountInstruction(ata, mint, walletPk, [], TOKEN_PROGRAM_ID))
     return submit(tx)
   }, [mint, publicKey, getAta, submit])
 
@@ -107,23 +111,18 @@ export function useManageToken(mintStr: string) {
     const walletPk = mustPk(publicKey, "Wallet")
     const owner = new PublicKey(ownerStr)
     const ata = await getAta(owner)
-    const tx = new Transaction().add(
-      createThawAccountInstruction(ata, mint, walletPk, [], TOKEN_PROGRAM_ID)
-    )
+    const tx = new Transaction().add(createThawAccountInstruction(ata, mint, walletPk, [], TOKEN_PROGRAM_ID))
     return submit(tx)
   }, [mint, publicKey, getAta, submit])
 
-  // Update metadata (requires connected wallet is update authority)
-  const updateMetadata = useCallback(async (fields: { name?: string; symbol?: string; uri?: string }) => {
+  const updateMetadata = useCallback(async (fields: { name: string; symbol: string; uri: string }) => {
     if (!mint) throw new Error("Invalid mint")
     const walletPk = mustPk(publicKey, "Wallet")
     if (!metadataPda) throw new Error("Metadata PDA missing")
 
-    // This updates the metadata "Data" struct. Leaving fields undefined keeps current values ONLY if you pass the full object.
-    // Simplest: require all 3 values in UI.
-    const name = fields.name || ""
-    const symbol = fields.symbol || ""
-    const uri = fields.uri || ""
+    const name = (fields.name || "").trim()
+    const symbol = (fields.symbol || "").trim()
+    const uri = (fields.uri || "").trim()
     if (!name || !symbol || !uri) throw new Error("Name, symbol, and uri are required")
 
     const data = {
@@ -148,19 +147,8 @@ export function useManageToken(mintStr: string) {
       }
     )
 
-    const tx = new Transaction().add(ix)
-    return submit(tx)
+    return submit(new Transaction().add(ix))
   }, [mint, metadataPda, publicKey, submit])
 
-  return {
-    mint,
-    busy,
-    lastSig,
-    error,
-    mintMore,
-    burnMine,
-    freezeOwner,
-    thawOwner,
-    updateMetadata,
-  }
+  return { mint, busy, lastSig, error, mintMore, burnMine, freezeOwner, thawOwner, updateMetadata }
 }

@@ -1,7 +1,9 @@
 ﻿"use client"
 
-import { useMemo, useState } from "react"
 import Link from "next/link"
+import { useMemo, useState } from "react"
+import { useWallet } from "@solana/wallet-adapter-react"
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
 import { useManageToken } from "@/hooks/use-manage-token"
 
 function toBigIntAmount(amount: string, decimals: number) {
@@ -13,100 +15,147 @@ function toBigIntAmount(amount: string, decimals: number) {
   return BigInt(whole) * (10n ** BigInt(decimals)) + BigInt(fracPadded || "0")
 }
 
+function Pill({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-full border px-2.5 py-1 text-xs text-gray-700">{children}</span>
+}
+
 export default function ManageTokenPage({ params }: { params: { mint: string } }) {
   const mintStr = params.mint
-  const { busy, lastSig, error, mintMore, burnMine, freezeOwner, thawOwner, updateMetadata } =
-    useManageToken(mintStr)
+  const { publicKey } = useWallet()
+  const { busy, lastSig, error, mintMore, burnMine, freezeOwner, thawOwner, updateMetadata } = useManageToken(mintStr)
 
+  const [tab, setTab] = useState<"supply" | "freeze" | "metadata">("supply")
   const [decimals, setDecimals] = useState<number>(9)
+
   const [mintAmt, setMintAmt] = useState("")
   const [burnAmt, setBurnAmt] = useState("")
   const [targetOwner, setTargetOwner] = useState("")
+
   const [name, setName] = useState("")
   const [symbol, setSymbol] = useState("")
   const [uri, setUri] = useState("")
 
-  const explorerSig = useMemo(
-    () => (lastSig ? `https://explorer.solana.com/tx/${lastSig}?cluster=devnet` : null),
-    [lastSig]
-  )
-  const explorerMint = useMemo(
-    () => `https://explorer.solana.com/address/${mintStr}?cluster=devnet`,
-    [mintStr]
-  )
+  const explorerMint = useMemo(() => `https://explorer.solana.com/address/${mintStr}?cluster=devnet`, [mintStr])
+  const explorerSig = useMemo(() => lastSig ? `https://explorer.solana.com/tx/${lastSig}?cluster=devnet` : "", [lastSig])
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-bold">Manage Token</h1>
-        <div className="text-sm break-all">
-          Mint:{" "}
-          <a className="underline" href={explorerMint} target="_blank" rel="noreferrer">
-            {mintStr}
-          </a>
+    <main className="mx-auto max-w-3xl px-6 py-10 space-y-6">
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold">Manage Token</h1>
+          <div className="text-sm text-gray-600 break-all">
+            Mint: <a className="underline" href={explorerMint} target="_blank" rel="noreferrer">{mintStr}</a>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Pill>Devnet</Pill>
+            {publicKey ? <Pill>Wallet connected</Pill> : <Pill>Connect wallet to use actions</Pill>}
+          </div>
+          <div className="text-sm">
+            <Link className="underline" href="/create">Create another</Link>
+          </div>
         </div>
-        <div className="flex gap-3 text-sm">
-          <Link className="underline" href="/create">Create another</Link>
+
+        <div className="shrink-0">
+          <WalletMultiButton />
         </div>
       </header>
 
-      <section className="space-y-3 p-4 rounded-xl border">
-        <h2 className="text-xl font-semibold">Decimals</h2>
-        <p className="text-sm text-gray-600">Set this to your token’s decimals so amounts convert correctly.</p>
-        <input className="w-32 border rounded px-3 py-2" type="number" min={0} max={18}
-          value={decimals} onChange={(e) => setDecimals(Number(e.target.value))} />
-      </section>
-
-      <section className="space-y-3 p-4 rounded-xl border">
-        <h2 className="text-xl font-semibold">Mint more tokens</h2>
-        <div className="flex gap-2">
-          <input className="flex-1 border rounded px-3 py-2" placeholder="Amount (e.g. 1000)"
-            value={mintAmt} onChange={(e) => setMintAmt(e.target.value)} />
-          <button className="border rounded px-4 py-2" disabled={busy}
-            onClick={async () => { const amt = toBigIntAmount(mintAmt, decimals); await mintMore(amt) }}>
-            Mint
-          </button>
+      <section className="rounded-2xl border p-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="text-sm font-medium">Decimals</div>
+            <div className="text-xs text-gray-600">Used only for amount conversion in this panel.</div>
+          </div>
+          <input
+            className="w-24 rounded-xl border px-3 py-2"
+            type="number"
+            min={0}
+            max={18}
+            value={decimals}
+            onChange={(e) => setDecimals(Number(e.target.value))}
+          />
         </div>
-        <p className="text-xs text-gray-600">Requires your wallet is the mint authority.</p>
-      </section>
 
-      <section className="space-y-3 p-4 rounded-xl border">
-        <h2 className="text-xl font-semibold">Burn tokens (from your wallet)</h2>
         <div className="flex gap-2">
-          <input className="flex-1 border rounded px-3 py-2" placeholder="Amount (e.g. 100)"
-            value={burnAmt} onChange={(e) => setBurnAmt(e.target.value)} />
-          <button className="border rounded px-4 py-2" disabled={busy}
-            onClick={async () => { const amt = toBigIntAmount(burnAmt, decimals); await burnMine(amt) }}>
-            Burn
-          </button>
+          <button className={`rounded-xl border px-4 py-2 text-sm ${tab==="supply" ? "bg-black text-white" : ""}`} onClick={() => setTab("supply")}>Supply</button>
+          <button className={`rounded-xl border px-4 py-2 text-sm ${tab==="freeze" ? "bg-black text-white" : ""}`} onClick={() => setTab("freeze")}>Freeze</button>
+          <button className={`rounded-xl border px-4 py-2 text-sm ${tab==="metadata" ? "bg-black text-white" : ""}`} onClick={() => setTab("metadata")}>Metadata</button>
         </div>
-      </section>
 
-      <section className="space-y-3 p-4 rounded-xl border">
-        <h2 className="text-xl font-semibold">Freeze / Thaw an account</h2>
-        <input className="w-full border rounded px-3 py-2" placeholder="Owner wallet address to freeze/thaw"
-          value={targetOwner} onChange={(e) => setTargetOwner(e.target.value)} />
-        <div className="flex gap-2">
-          <button className="border rounded px-4 py-2" disabled={busy} onClick={() => freezeOwner(targetOwner)}>Freeze</button>
-          <button className="border rounded px-4 py-2" disabled={busy} onClick={() => thawOwner(targetOwner)}>Thaw</button>
-        </div>
-        <p className="text-xs text-gray-600">Requires your wallet is the freeze authority.</p>
-      </section>
+        {tab === "supply" && (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border p-4 space-y-2">
+                <div className="text-sm font-medium">Mint more</div>
+                <div className="flex gap-2">
+                  <input className="flex-1 rounded-xl border px-3 py-2" placeholder="Amount" value={mintAmt} onChange={(e) => setMintAmt(e.target.value)} />
+                  <button
+                    className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60"
+                    disabled={busy || !publicKey}
+                    onClick={async () => {
+                      const amt = toBigIntAmount(mintAmt, decimals)
+                      await mintMore(amt)
+                    }}
+                  >
+                    Mint
+                  </button>
+                </div>
+                <div className="text-xs text-gray-600">Requires your wallet is the mint authority.</div>
+              </div>
 
-      <section className="space-y-3 p-4 rounded-xl border">
-        <h2 className="text-xl font-semibold">Update token metadata</h2>
-        <input className="w-full border rounded px-3 py-2" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <input className="w-full border rounded px-3 py-2" placeholder="Symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} />
-        <input className="w-full border rounded px-3 py-2" placeholder="Metadata URI (https://...)" value={uri} onChange={(e) => setUri(e.target.value)} />
-        <button className="border rounded px-4 py-2" disabled={busy} onClick={() => updateMetadata({ name, symbol, uri })}>
-          Update metadata
-        </button>
+              <div className="rounded-xl border p-4 space-y-2">
+                <div className="text-sm font-medium">Burn (from your wallet)</div>
+                <div className="flex gap-2">
+                  <input className="flex-1 rounded-xl border px-3 py-2" placeholder="Amount" value={burnAmt} onChange={(e) => setBurnAmt(e.target.value)} />
+                  <button
+                    className="rounded-xl border px-4 py-2 disabled:opacity-60"
+                    disabled={busy || !publicKey}
+                    onClick={async () => {
+                      const amt = toBigIntAmount(burnAmt, decimals)
+                      await burnMine(amt)
+                    }}
+                  >
+                    Burn
+                  </button>
+                </div>
+                <div className="text-xs text-gray-600">Burns tokens from your associated token account.</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "freeze" && (
+          <div className="space-y-3">
+            <div className="text-sm font-medium">Freeze / Thaw an owner’s token account</div>
+            <input className="w-full rounded-xl border px-3 py-2" placeholder="Owner wallet address" value={targetOwner} onChange={(e) => setTargetOwner(e.target.value)} />
+            <div className="flex gap-2">
+              <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={() => freezeOwner(targetOwner)}>Freeze</button>
+              <button className="rounded-xl border px-4 py-2 disabled:opacity-60" disabled={busy || !publicKey} onClick={() => thawOwner(targetOwner)}>Thaw</button>
+            </div>
+            <div className="text-xs text-gray-600">Requires your wallet is the freeze authority.</div>
+          </div>
+        )}
+
+        {tab === "metadata" && (
+          <div className="space-y-3">
+            <div className="text-sm font-medium">Update token metadata</div>
+            <div className="grid gap-2">
+              <input className="w-full rounded-xl border px-3 py-2" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+              <input className="w-full rounded-xl border px-3 py-2" placeholder="Symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} />
+              <input className="w-full rounded-xl border px-3 py-2" placeholder="Metadata URI (https://...)" value={uri} onChange={(e) => setUri(e.target.value)} />
+            </div>
+            <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={() => updateMetadata({ name, symbol, uri })}>
+              Update
+            </button>
+            <div className="text-xs text-gray-600">Requires your wallet is the update authority.</div>
+          </div>
+        )}
       </section>
 
       {(error || lastSig) && (
-        <section className="space-y-2 p-4 rounded-xl border">
-          {error && <div className="text-red-600 text-sm">{error}</div>}
-          {explorerSig && (
+        <section className="rounded-2xl border p-4 space-y-2">
+          {error && <div className="text-sm text-red-600">{error}</div>}
+          {lastSig && (
             <div className="text-sm">
               Last tx: <a className="underline" href={explorerSig} target="_blank" rel="noreferrer">{lastSig}</a>
             </div>
