@@ -2,7 +2,13 @@
 
 import { useState, useCallback } from "react"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
-import { Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js"
+import {
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js"
 import {
   createInitializeMintInstruction,
   createAssociatedTokenAccountInstruction,
@@ -16,6 +22,7 @@ import {
 } from "@solana/spl-token"
 import {
   createCreateMetadataAccountV3Instruction,
+  createUpdateMetadataAccountV2Instruction,
   PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID,
 } from "@metaplex-foundation/mpl-token-metadata"
 import type { TokenFormData } from "@/components/token-form"
@@ -32,19 +39,15 @@ export interface CreateTokenResult {
   freezeAuthorityRevoked: boolean
 }
 
-function pk(value: PublicKey | null | undefined, label: string): PublicKey {
-  if (!value) throw new Error(`${label} is missing`)
-  return value
-}
-
-function pow10BigInt(decimals: number): bigint {
-  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error("Invalid decimals")
-  return 10n ** BigInt(decimals)
+function mustPk(pk: PublicKey | null | undefined, label: string): PublicKey {
+  if (!pk) throw new Error(`${label} is missing`)
+  return pk
 }
 
 export function useCreateToken() {
   const { connection } = useConnection()
   const { publicKey, sendTransaction } = useWallet()
+
   const [isCreating, setIsCreating] = useState(false)
   const [result, setResult] = useState<CreateTokenResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -61,7 +64,11 @@ export function useCreateToken() {
     data.append("description", formData.description || "")
     if (formData.image) data.append("image", formData.image)
 
-    const response = await fetch("/api/upload-metadata", { method: "POST", body: data })
+    const response = await fetch("/api/upload-metadata", {
+      method: "POST",
+      body: data,
+    })
+
     if (!response.ok) {
       let msg = "Failed to upload metadata"
       try {
@@ -71,67 +78,53 @@ export function useCreateToken() {
       throw new Error(msg)
     }
 
-    const json = await response.json()
-    const uri = (json?.metadataUri || "") as string
-    if (!uri.startsWith("http")) throw new Error("Invalid metadata URI returned")
-    return uri
+    const { metadataUri } = await response.json()
+    if (!metadataUri || typeof metadataUri !== "string") {
+      throw new Error("Upload returned no metadataUri")
+    }
+    return metadataUri
   }, [])
 
   const createToken = useCallback(
     async (formData: TokenFormData) => {
-      setError(null)
-      setResult(null)
-
-      if (!publicKey) {
-        setError("Please connect your wallet")
-        return
-      }
-
-      const feeWalletStr = process.env.NEXT_PUBLIC_FEE_WALLET
-      if (!feeWalletStr) {
-        setError("Missing NEXT_PUBLIC_FEE_WALLET env var")
-        return
-      }
-
-      let feeWallet: PublicKey
       try {
-        feeWallet = new PublicKey(feeWalletStr)
-      } catch {
-        setError("Invalid NEXT_PUBLIC_FEE_WALLET address")
-        return
-      }
+        const walletPk = mustPk(publicKey, "Wallet")
+        setIsCreating(true)
+        setError(null)
+        setResult(null)
 
-      setIsCreating(true)
+        const feeWalletStr = process.env.NEXT_PUBLIC_FEE_WALLET
+        if (!feeWalletStr) throw new Error("Missing NEXT_PUBLIC_FEE_WALLET env var")
+        const feeWalletPubkey = new PublicKey(feeWalletStr)
 
-      try {
-        // 1) metadata uri
-        let metadataUri = ""
+        let metadataUri: string
         if (formData.metadataMode === "url") {
           metadataUri = (formData.metadataUrl || "").trim()
-          if (!metadataUri.startsWith("http")) throw new Error("Invalid metadata URL")
+          if (!metadataUri || !/^https?:\/\//i.test(metadataUri)) {
+            throw new Error("Invalid metadata URL (must start with http/https)")
+          }
         } else {
           metadataUri = await uploadMetadata(formData)
         }
 
-        // 2) mint + rent + ata
         const mintKeypair = Keypair.generate()
         const mint = mintKeypair.publicKey
 
+        const serviceFee = formData.plan === "basic" ? BASIC_FEE : ADVANCED_FEE
         const lamportsForMint = await getMinimumBalanceForRentExemptMint(connection)
-        const ata = await getAssociatedTokenAddress(mint, publicKey)
 
-        // 3) metadata PDA (web3.js keys, non-umi)
+        const ata = await getAssociatedTokenAddress(mint, walletPk)
+
         const [metadataPDA] = PublicKey.findProgramAddressSync(
           [Buffer.from("metadata"), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
           TOKEN_METADATA_PROGRAM_ID
         )
 
-        // 4) build tx
         const tx = new Transaction()
 
         tx.add(
           SystemProgram.createAccount({
-            fromPubkey: publicKey,
+            fromPubkey: walletPk,
             newAccountPubkey: mint,
             space: MINT_SIZE,
             lamports: lamportsForMint,
@@ -139,74 +132,98 @@ export function useCreateToken() {
           })
         )
 
-        tx.add(createInitializeMintInstruction(mint, formData.decimals, publicKey, publicKey))
-        tx.add(createAssociatedTokenAccountInstruction(publicKey, ata, publicKey, mint))
+        tx.add(
+          createInitializeMintInstruction(
+            mint,
+            Number(formData.decimals),
+            walletPk,
+            walletPk,
+            TOKEN_PROGRAM_ID
+          )
+        )
 
-        const totalSupplyStr = String(formData.totalSupply ?? "").trim()
-        if (!/^\d+$/.test(totalSupplyStr)) throw new Error("Total supply must be a whole number")
+        tx.add(createAssociatedTokenAccountInstruction(walletPk, ata, walletPk, mint))
 
-        const supply = BigInt(totalSupplyStr) * pow10BigInt(formData.decimals)
-        tx.add(createMintToInstruction(mint, ata, publicKey, supply))
+        const decimalsPow = BigInt(10) ** BigInt(Number(formData.decimals))
+        const supply = BigInt(formData.totalSupply) * decimalsPow
+        tx.add(createMintToInstruction(mint, ata, walletPk, supply))
 
-        const isImmutable = formData.plan === "basic"
+        const isBasic = formData.plan === "basic"
+        const metadataData = {
+          name: formData.name,
+          symbol: formData.symbol,
+          uri: metadataUri,
+          sellerFeeBasisPoints: 0,
+          creators: null,
+          collection: null,
+          uses: null,
+        }
 
-        // Create metadata (v2 SDK, no Umi)
         tx.add(
           createCreateMetadataAccountV3Instruction(
             {
               metadata: metadataPDA,
               mint,
-              mintAuthority: publicKey,
-              payer: publicKey,
-              updateAuthority: publicKey,
+              mintAuthority: walletPk,
+              payer: walletPk,
+              updateAuthority: walletPk,
             },
             {
               createMetadataAccountArgsV3: {
-                data: {
-                  name: formData.name,
-                  symbol: formData.symbol,
-                  uri: metadataUri,
-                  sellerFeeBasisPoints: 0,
-                  creators: null,
-                  collection: null,
-                  uses: null,
-                },
-                isMutable: !isImmutable,
+                data: metadataData,
+                isMutable: !isBasic,
                 collectionDetails: null,
               },
             }
           )
         )
 
-        // If basic/immutable: revoke authorities (token immutability side)
-        if (isImmutable) {
-          tx.add(createSetAuthorityInstruction(mint, publicKey, AuthorityType.MintTokens, null))
-          tx.add(createSetAuthorityInstruction(mint, publicKey, AuthorityType.FreezeAccount, null))
+        if (isBasic) {
+          tx.add(createSetAuthorityInstruction(mint, walletPk, AuthorityType.MintTokens, null))
+          tx.add(createSetAuthorityInstruction(mint, walletPk, AuthorityType.FreezeAccount, null))
+
+          tx.add(
+            createUpdateMetadataAccountV2Instruction(
+              { metadata: metadataPDA, updateAuthority: walletPk },
+              {
+                updateMetadataAccountArgsV2: {
+                  data: metadataData,
+                  updateAuthority: walletPk,
+                  primarySaleHappened: null,
+                  isMutable: false,
+                },
+              }
+            )
+          )
         }
 
-        // service fee
-        const fee = isImmutable ? BASIC_FEE : ADVANCED_FEE
         tx.add(
           SystemProgram.transfer({
-            fromPubkey: publicKey,
-            toPubkey: feeWallet,
-            lamports: Math.floor(fee * LAMPORTS_PER_SOL),
+            fromPubkey: walletPk,
+            toPubkey: feeWalletPubkey,
+            lamports: Math.floor(serviceFee * LAMPORTS_PER_SOL),
           })
         )
 
-        const sig = await sendTransaction(tx, connection, { signers: [mintKeypair] })
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
+        tx.recentBlockhash = blockhash
+        tx.feePayer = walletPk
+
+        const signature = await sendTransaction(tx, connection, { signers: [mintKeypair] })
+
+        await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature })
 
         setResult({
-          signature: sig,
+          signature,
           mintAddress: mint.toBase58(),
           name: formData.name,
           symbol: formData.symbol,
-          mintAuthorityRevoked: isImmutable,
-          freezeAuthorityRevoked: isImmutable,
+          mintAuthorityRevoked: isBasic,
+          freezeAuthorityRevoked: isBasic,
         })
-      } catch (e: any) {
-        console.error(e)
-        setError(e?.message ?? "Token creation failed")
+      } catch (err) {
+        console.error("Token creation error:", err)
+        setError(err instanceof Error ? err.message : "Failed to create token")
       } finally {
         setIsCreating(false)
       }
