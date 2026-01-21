@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
@@ -179,7 +179,7 @@ function SuccessContent() {
           <Button asChild variant="outline" className="flex-1 bg-transparent">
             <Link href="/create" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Create Another Token
+              Create Another Token{"\n"}<a className="underline" href={`/manage/${mintAddress}`}>Manage Token</a>
             </Link>
           </Button>
           <Button
@@ -219,3 +219,5 @@ export default function SuccessPage() {
     </div>
   )
 }
+
+
