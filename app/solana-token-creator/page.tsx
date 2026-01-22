@@ -1,53 +1,119 @@
-﻿import type { Metadata } from "next"
-import Link from "next/link"
+"use client";
 
-export const metadata: Metadata = {
-  title: "Solana Token Creator – Create SPL Tokens Instantly",
-  description:
-    "Create SPL tokens on Solana in seconds. Mint, burn, freeze, revoke authorities, and manage token metadata with a simple dashboard.",
-}
+import React from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ArrowRight, Check, Coins, Zap, Shield, Settings } from "lucide-react";
 
-export default function Page() {
+const faqs = [
+  { q: "What is an SPL token?", a: "SPL tokens are fungible tokens on the Solana blockchain, similar to ERC-20 tokens on Ethereum. They can represent anything from currencies to governance tokens." },
+  { q: "How much does it cost?", a: "Creating a token costs a small fee in SOL (0.01-0.02 SOL) plus network transaction fees (~0.00001 SOL)." },
+  { q: "Do I need coding skills?", a: "No! MintPanel handles all the technical details. Just fill out a form and your token is created." },
+  { q: "What's the difference between Basic and Advanced?", a: "Basic revokes all authorities making your token immutable. Advanced keeps mint/freeze authorities so you can manage supply later." },
+  { q: "Can I update my token after creation?", a: "Only with Advanced plan. Basic tokens are immutable once created." },
+];
+
+const SolanaTokenCreator: React.FC = () => {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 space-y-8">
-      <header className="space-y-3">
-        <h1 className="text-3xl font-bold">Solana Token Creator</h1>
-        <p className="text-gray-600">
-          MintPanel lets you create SPL tokens on Solana fast. Create a mint, set supply and decimals,
-          attach token metadata, and control authorities.
-        </p>
-        <div className="flex gap-3">
-          <Link className="underline" href="/create">Create a token</Link>
-          <Link className="underline" href="/faq">FAQ</Link>
+    <>
+      {/* Hero */}
+      <section className="py-16 md:py-20">
+        <div className="container">
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl mb-4">
+              Solana Token Creator
+            </h1>
+            <p className="text-lg text-muted-foreground mb-8">
+              Create your own SPL token on Solana in minutes. No coding required. Full control over your token's properties and authorities.
+            </p>
+            <Button size="lg" asChild>
+              <Link href="/create">
+                Create Your Token <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
-      </header>
-
-      <section className="space-y-3">
-        <h2 className="text-2xl font-semibold">How to create a Solana token (SPL)</h2>
-        <ol className="list-decimal pl-6 space-y-2">
-          <li>Connect your wallet.</li>
-          <li>Choose token name, symbol, decimals, and supply.</li>
-          <li>Add metadata (name/symbol/description/image).</li>
-          <li>Deploy the mint and receive a transaction signature.</li>
-        </ol>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-2xl font-semibold">Mint, burn, freeze, and revoke authorities</h2>
-        <p>
-          SPL tokens can be managed by mint authority and freeze authority. You can mint more supply,
-          burn tokens, freeze accounts, and revoke authorities when you want immutability.
-        </p>
+      {/* How It Works */}
+      <section className="py-16 bg-secondary/30">
+        <div className="container">
+          <h2 className="text-2xl font-semibold text-center mb-10">How It Works</h2>
+          <div className="grid gap-6 md:grid-cols-4 max-w-4xl mx-auto">
+            {[
+              { step: 1, title: "Connect Wallet", desc: "Connect your Solana wallet (Phantom, Solflare, Brave, etc.)" },
+              { step: 2, title: "Enter Details", desc: "Set token name, symbol, decimals, and initial supply" },
+              { step: 3, title: "Choose Plan", desc: "Basic (immutable) or Advanced (full control)" },
+              { step: 4, title: "Create Token", desc: "Approve the transaction and your token is live" },
+            ].map((item) => (
+              <Card key={item.step}>
+                <CardContent className="pt-6 text-center">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold mb-3">
+                    {item.step}
+                  </div>
+                  <h3 className="font-medium mb-1">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-2xl font-semibold">Why use MintPanel</h2>
-        <ul className="list-disc pl-6 space-y-2">
-          <li>Simple token creation UI for Solana SPL mints</li>
-          <li>Supports token metadata (Metaplex Token Metadata)</li>
-          <li>Plan options: immutable (basic) vs controllable (advanced)</li>
-        </ul>
+      {/* Features */}
+      <section className="py-16">
+        <div className="container">
+          <h2 className="text-2xl font-semibold text-center mb-10">Features</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
+            {[
+              { icon: Coins, title: "SPL Token Standard", desc: "Compatible with all Solana wallets and DEXs" },
+              { icon: Zap, title: "Instant Creation", desc: "Token created on-chain in seconds" },
+              { icon: Shield, title: "Secure", desc: "You control all authorities" },
+              { icon: Settings, title: "Management", desc: "Mint, burn, freeze from dashboard" },
+            ].map((f) => (
+              <Card key={f.title}>
+                <CardContent className="pt-6">
+                  <f.icon className="h-8 w-8 mb-3" />
+                  <h3 className="font-medium mb-1">{f.title}</h3>
+                  <p className="text-sm text-muted-foreground">{f.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </section>
-    </main>
-  )
-}
+
+      {/* FAQ */}
+      <section className="py-16 bg-secondary/30">
+        <div className="container">
+          <h2 className="text-2xl font-semibold text-center mb-10">Frequently Asked Questions</h2>
+          <div className="max-w-2xl mx-auto">
+            <Accordion type="single" collapsible>
+              {faqs.map((faq, i) => (
+                <AccordionItem key={i} value={`faq-${i}`}>
+                  <AccordionTrigger className="text-left">{faq.q}</AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground">{faq.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-16">
+        <div className="container text-center">
+          <h2 className="text-2xl font-semibold mb-4">Ready to Create Your Token?</h2>
+          <p className="text-muted-foreground mb-6">Join thousands of creators who have launched tokens on Solana.</p>
+          <Button size="lg" asChild>
+            <Link href="/create">Get Started</Link>
+          </Button>
+        </div>
+      </section>
+    </>
+  );
+};
+
+export default SolanaTokenCreator;
