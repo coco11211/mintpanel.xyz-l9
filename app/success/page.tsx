@@ -1,76 +1,64 @@
-﻿"use client"
+﻿import Link from "next/link"
 
-import Link from "next/link"
-import { useMemo } from "react"
-import { useSearchParams } from "next/navigation"
+export const dynamic = "force-dynamic"
 
-export default function SuccessPage() {
-  const sp = useSearchParams()
+export default function SuccessPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
+  const mint =
+    typeof searchParams?.mint === "string"
+      ? searchParams?.mint
+      : Array.isArray(searchParams?.mint)
+      ? searchParams?.mint[0]
+      : ""
 
-  // Accept either ?mint=... or ?mintAddress=...
-  const mintAddress = sp.get("mint") || sp.get("mintAddress") || ""
-  const signature = sp.get("signature") || sp.get("sig") || ""
-  const name = sp.get("name") || ""
-  const symbol = sp.get("symbol") || ""
+  const sig =
+    typeof searchParams?.sig === "string"
+      ? searchParams?.sig
+      : Array.isArray(searchParams?.sig)
+      ? searchParams?.sig[0]
+      : ""
 
-  const explorerTx = useMemo(() => {
-    if (!signature) return ""
-    return `https://explorer.solana.com/tx/${signature}?cluster=devnet`
-  }, [signature])
-
-  const explorerMint = useMemo(() => {
-    if (!mintAddress) return ""
-    return `https://explorer.solana.com/address/${mintAddress}?cluster=devnet`
-  }, [mintAddress])
+  const cluster = "devnet"
+  const txUrl = sig ? `https://explorer.solana.com/tx/${sig}?cluster=${cluster}` : ""
+  const mintUrl = mint ? `https://explorer.solana.com/address/${mint}?cluster=${cluster}` : ""
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 space-y-8">
+    <main className="mx-auto max-w-2xl px-6 py-12 space-y-8">
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold">Token Created Successfully</h1>
-        {(name || symbol) && (
-          <p className="text-gray-600">
-            {name ? name : "Your token"}{symbol ? ` (${symbol})` : ""} has been created on Solana.
-          </p>
-        )}
+        <h1 className="text-3xl font-bold">Token Created Successfully</h1>
+        <p className="text-gray-600">Your token was created on Solana.</p>
       </header>
 
-      <section className="space-y-3 p-4 rounded-xl border">
-        <h2 className="text-lg font-semibold">Token Details</h2>
-
-        <div className="text-sm space-y-1">
-          {name && <div><span className="text-gray-600">Name:</span> {name}</div>}
-          {symbol && <div><span className="text-gray-600">Symbol:</span> {symbol}</div>}
-
-          <div className="break-all">
-            <span className="text-gray-600">Mint:</span>{" "}
-            {mintAddress ? (
-              <a className="underline" href={explorerMint} target="_blank" rel="noreferrer">{mintAddress}</a>
-            ) : (
-              <span className="text-gray-500">Missing mint in URL</span>
-            )}
-          </div>
-
-          <div className="break-all">
-            <span className="text-gray-600">Signature:</span>{" "}
-            {signature ? (
-              <a className="underline" href={explorerTx} target="_blank" rel="noreferrer">{signature}</a>
-            ) : (
-              <span className="text-gray-500">Missing signature in URL</span>
-            )}
-          </div>
-        </div>
-
-        <div className="pt-2 flex gap-4 text-sm">
-          <Link className="underline" href="/create">Create Another Token</Link>
-          {mintAddress && (
-            <Link className="underline" href={`/manage/${mintAddress}`}>Manage Token</Link>
-          )}
-        </div>
+      <section className="rounded-xl border p-4 space-y-2">
+        <div className="text-sm text-gray-600">Mint Address</div>
+        <div className="break-all font-mono text-sm">{mint || "(missing mint param)"}</div>
+        {mintUrl && (
+          <a className="underline text-sm" href={mintUrl} target="_blank" rel="noreferrer">
+            View Token
+          </a>
+        )}
       </section>
 
-      <section className="space-y-2 text-sm text-gray-600">
-        <div>Tip: If “Manage Token” is missing, open the success page with <code>?mint=YOUR_MINT</code>.</div>
-      </section>
+      <div className="flex flex-wrap gap-3">
+        <Link className="rounded border px-4 py-2" href="/create">
+          Create Another Token
+        </Link>
+
+        {mint && (
+          <Link className="rounded border px-4 py-2" href={`/manage/${mint}`}>
+            Manage Token
+          </Link>
+        )}
+
+        {txUrl && (
+          <a className="rounded border px-4 py-2" href={txUrl} target="_blank" rel="noreferrer">
+            View Transaction
+          </a>
+        )}
+      </div>
     </main>
   )
 }
