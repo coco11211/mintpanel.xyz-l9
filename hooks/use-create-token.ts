@@ -224,7 +224,7 @@ export function useCreateToken() {
         })
 
         // Redirect to success page with params
-        router.push(/success?mint=&sig=)
+        router.push(`/success?mint=${mint.toBase58()}&sig=${signature}`)
 } catch (err) {
         console.error("Token creation error:", err)
         setError(err instanceof Error ? err.message : "Failed to create token")
@@ -237,5 +237,6 @@ export function useCreateToken() {
 
   return { createToken, isCreating, result, error, reset }
 }
+
 
 
