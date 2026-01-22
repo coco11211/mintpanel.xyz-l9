@@ -1,7 +1,6 @@
 ﻿"use client"
 
-import { useState, useCallback } from "react"
-import { useConnection, useWallet } from "@solana/wallet-adapter-react"
+import { useState, useCallback } from "react"import { useConnection, useWallet } from "@solana/wallet-adapter-react"
 import {
   Keypair,
   PublicKey,
@@ -45,6 +44,7 @@ function mustPk(pk: PublicKey | null | undefined, label: string): PublicKey {
 }
 
 export function useCreateToken() {
+  const router = useRouter()
   const { connection } = useConnection()
   const { publicKey, sendTransaction } = useWallet()
 
@@ -221,7 +221,10 @@ export function useCreateToken() {
           mintAuthorityRevoked: isBasic,
           freezeAuthorityRevoked: isBasic,
         })
-      } catch (err) {
+
+        // Redirect to success page with params
+        router.push(/success?mint=&sig=)
+} catch (err) {
         console.error("Token creation error:", err)
         setError(err instanceof Error ? err.message : "Failed to create token")
       } finally {
@@ -233,3 +236,4 @@ export function useCreateToken() {
 
   return { createToken, isCreating, result, error, reset }
 }
+
