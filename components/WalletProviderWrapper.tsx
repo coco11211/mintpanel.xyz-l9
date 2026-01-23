@@ -5,30 +5,27 @@ import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui"
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base"
 import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets"
-import { clusterApiUrl } from "@solana/web3.js"
+import { useNetwork } from "@/contexts/NetworkContext"
 
 import "@solana/wallet-adapter-react-ui/styles.css"
 
 export default function WalletProviderWrapper({ children }: { children: ReactNode }) {
-  // Determine network from environment or default to devnet
-  const networkEnv = process.env.NEXT_PUBLIC_SOLANA_NETWORK || "devnet"
-  const network = networkEnv === "mainnet-beta" ? WalletAdapterNetwork.Mainnet : WalletAdapterNetwork.Devnet
+  const { network, connection } = useNetwork()
 
-  const endpoint = useMemo(() => {
-    const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC || process.env.NEXT_PUBLIC_RPC
-    if (rpcUrl && rpcUrl.startsWith("http")) {
-      return rpcUrl
-    }
-    return clusterApiUrl(networkEnv as "devnet" | "mainnet-beta")
-  }, [networkEnv])
+  // Convert network to WalletAdapterNetwork
+  const walletNetwork = network === "mainnet-beta" ? WalletAdapterNetwork.Mainnet : WalletAdapterNetwork.Devnet
 
   const wallets = useMemo(() => {
     // Create wallet adapters with network configuration
     return [
       new PhantomWalletAdapter(),
-      new SolflareWalletAdapter({ network }),
+      new SolflareWalletAdapter({ network: walletNetwork }),
     ]
-  }, [network])
+  }, [walletNetwork])
+
+  const endpoint = useMemo(() => {
+    return connection.rpcEndpoint
+  }, [connection])
 
   return (
     <ConnectionProvider endpoint={endpoint}>

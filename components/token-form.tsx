@@ -44,7 +44,7 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
     if (result) {
       const params = new URLSearchParams({
         mint: result.mintAddress,
-        tx: result.signature,
+        sig: result.signature,
         name: result.name,
         symbol: result.symbol || "",
         mintRevoked: result.mintAuthorityRevoked ? "true" : "false",
