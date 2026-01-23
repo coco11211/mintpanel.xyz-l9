@@ -1,24 +1,27 @@
-﻿import Link from "next/link"
+import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
-export default function SuccessPage({
+export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  // In Next.js 15+, searchParams is async
+  const params = await searchParams
+
   const mint =
-    typeof searchParams?.mint === "string"
-      ? searchParams?.mint
-      : Array.isArray(searchParams?.mint)
-      ? searchParams?.mint[0]
+    typeof params?.mint === "string"
+      ? params?.mint
+      : Array.isArray(params?.mint)
+      ? params?.mint[0]
       : ""
 
   const sig =
-    typeof searchParams?.sig === "string"
-      ? searchParams?.sig
-      : Array.isArray(searchParams?.sig)
-      ? searchParams?.sig[0]
+    typeof params?.sig === "string"
+      ? params?.sig
+      : Array.isArray(params?.sig)
+      ? params?.sig[0]
       : ""
 
   const cluster = "devnet"
@@ -62,3 +65,4 @@ export default function SuccessPage({
     </main>
   )
 }
+
