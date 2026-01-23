@@ -61,7 +61,8 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="mt-8 pt-6 border-t border-border text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} MintPanel. All rights reserved.
+          <div>© {new Date().getFullYear()} MintPanel. All rights reserved.</div>
+          <div className="mt-1 text-xs opacity-50">v2.0.0 - Fixed: Mint display, Network switching, Pricing</div>
         </div>
       </div>
     </footer>
