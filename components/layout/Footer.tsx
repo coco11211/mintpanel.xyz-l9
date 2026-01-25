@@ -8,7 +8,7 @@ export const Footer: React.FC = () => {
   return (
     <footer className="border-t border-border bg-secondary/30">
       <div className="container py-10">
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-5">
           <div className="space-y-3">
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
@@ -28,7 +28,13 @@ export const Footer: React.FC = () => {
                 Create Token
               </Link>
               <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                My Tokens
+                Dashboard
+              </Link>
+              <Link href="/pricing" className="hover:text-foreground transition-colors">
+                Pricing
+              </Link>
+              <Link href="/features" className="hover:text-foreground transition-colors">
+                Features
               </Link>
             </nav>
           </div>
@@ -36,26 +42,60 @@ export const Footer: React.FC = () => {
           <div className="space-y-3">
             <h4 className="text-sm font-medium">Learn</h4>
             <nav className="flex flex-col gap-2 text-sm text-muted-foreground">
-              <Link href="/solana-token-creator" className="hover:text-foreground transition-colors">
-                Token Creator Guide
+              <Link href="/docs" className="hover:text-foreground transition-colors">
+                Documentation
               </Link>
-              <Link href="/spl-token-metadata" className="hover:text-foreground transition-colors">
-                SPL Token Metadata
+              <Link href="/how-it-works" className="hover:text-foreground transition-colors">
+                How It Works
               </Link>
-              <Link href="/mint-and-burn-solana-tokens" className="hover:text-foreground transition-colors">
-                Mint & Burn
+              <Link href="/tutorials" className="hover:text-foreground transition-colors">
+                Tutorials
               </Link>
-              <Link href="/freeze-authority-solana" className="hover:text-foreground transition-colors">
-                Freeze Authority
+              <Link href="/guides" className="hover:text-foreground transition-colors">
+                Guides
+              </Link>
+              <Link href="/token-standards" className="hover:text-foreground transition-colors">
+                Token Standards
               </Link>
             </nav>
           </div>
 
           <div className="space-y-3">
-            <h4 className="text-sm font-medium">Legal</h4>
+            <h4 className="text-sm font-medium">Resources</h4>
             <nav className="flex flex-col gap-2 text-sm text-muted-foreground">
-              <span className="cursor-default">Terms of Service</span>
-              <span className="cursor-default">Privacy Policy</span>
+              <Link href="/resources" className="hover:text-foreground transition-colors">
+                Resources
+              </Link>
+              <Link href="/blog" className="hover:text-foreground transition-colors">
+                Blog
+              </Link>
+              <Link href="/use-cases" className="hover:text-foreground transition-colors">
+                Use Cases
+              </Link>
+              <Link href="/comparison" className="hover:text-foreground transition-colors">
+                Comparison
+              </Link>
+              <Link href="/security" className="hover:text-foreground transition-colors">
+                Security
+              </Link>
+            </nav>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium">Support</h4>
+            <nav className="flex flex-col gap-2 text-sm text-muted-foreground">
+              <Link href="/support" className="hover:text-foreground transition-colors">
+                Support Center
+              </Link>
+              <Link href="/faq" className="hover:text-foreground transition-colors">
+                FAQ
+              </Link>
+              <Link href="/faq-extended" className="hover:text-foreground transition-colors">
+                Extended FAQ
+              </Link>
+              <Link href="/contact" className="hover:text-foreground transition-colors">
+                Contact Us
+              </Link>
             </nav>
           </div>
         </div>

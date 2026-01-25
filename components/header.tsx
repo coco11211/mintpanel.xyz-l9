@@ -23,23 +23,35 @@ export function Header() {
         </Link>
         
         <nav className="hidden items-center gap-6 md:flex">
-          <Link 
-            href="/#pricing" 
+          <Link
+            href="/pricing"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Pricing
           </Link>
-          <Link 
-            href="/#how-it-works" 
+          <Link
+            href="/features"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Features
+          </Link>
+          <Link
+            href="/how-it-works"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             How It Works
           </Link>
-          <Link 
-            href="/faq" 
+          <Link
+            href="/docs"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            FAQ
+            Docs
+          </Link>
+          <Link
+            href="/dashboard"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Dashboard
           </Link>
         </nav>
 
