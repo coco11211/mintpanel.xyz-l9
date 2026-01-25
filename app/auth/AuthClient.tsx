@@ -24,6 +24,7 @@ export default function AuthClient() {
     setErr(null)
     if (!required) {
       localStorage.setItem("mp_auth_ok", "1")
+      document.cookie = "mp_auth=1; path=/; max-age=31536000"
       router.replace(nextPath)
       return
     }
@@ -32,6 +33,7 @@ export default function AuthClient() {
       return
     }
     localStorage.setItem("mp_auth_ok", "1")
+    document.cookie = "mp_auth=1; path=/; max-age=31536000"
     router.replace(nextPath)
   }
 

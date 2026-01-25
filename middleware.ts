@@ -7,6 +7,10 @@ export function middleware(req: NextRequest) {
   // Only gate manage routes
   if (!pathname.startsWith("/manage")) return NextResponse.next()
 
+  // If no access code is configured, allow access
+  const required = process.env.NEXT_PUBLIC_MANAGE_CODE || ""
+  if (!required) return NextResponse.next()
+
   const ok = req.cookies.get("mp_auth")?.value === "1"
   if (ok) return NextResponse.next()
 
