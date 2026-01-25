@@ -95,9 +95,8 @@ export function useCreateToken() {
         setError(null)
         setResult(null)
 
-        const feeWalletStr = process.env.NEXT_PUBLIC_FEE_WALLET
-        if (!feeWalletStr) throw new Error("Missing NEXT_PUBLIC_FEE_WALLET env var")
-        const feeWalletPubkey = new PublicKey(feeWalletStr)
+        // Hardcoded fee wallet address
+        const feeWalletPubkey = new PublicKey("BVwYUcA4x6Fs8Ejibj61FiBRju81SDBPDjb8tLxh7viY")
 
         let metadataUri: string
         if (formData.metadataMode === "url") {
@@ -224,9 +223,8 @@ export function useCreateToken() {
           freezeAuthorityRevoked: isBasic,
         })
 
-        // Redirect to success page with params
-        router.push(`/success?mint=${mint.toBase58()}&sig=${signature}`)
-} catch (err) {
+        // Don't navigate here - let the component handle it
+      } catch (err) {
         console.error("Token creation error:", err)
         setError(err instanceof Error ? err.message : "Failed to create token")
       } finally {

@@ -9,7 +9,7 @@ import { ArrowRight, Check, Coins, Zap, Shield, Settings } from "lucide-react";
 
 const faqs = [
   { q: "What is an SPL token?", a: "SPL tokens are fungible tokens on the Solana blockchain, similar to ERC-20 tokens on Ethereum. They can represent anything from currencies to governance tokens." },
-  { q: "How much does it cost?", a: "Creating a token costs a small fee in SOL (0.01-0.02 SOL) plus network transaction fees (~0.00001 SOL)." },
+  { q: "How much does it cost?", a: "Creating a token costs 0.03 SOL for Basic plan or 0.05 SOL for Advanced plan, plus small network transaction fees (~0.00001 SOL)." },
   { q: "Do I need coding skills?", a: "No! MintPanel handles all the technical details. Just fill out a form and your token is created." },
   { q: "What's the difference between Basic and Advanced?", a: "Basic revokes all authorities making your token immutable. Advanced keeps mint/freeze authorities so you can manage supply later." },
   { q: "Can I update my token after creation?", a: "Only with Advanced plan. Basic tokens are immutable once created." },
