@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 
 const stats = [
-  { label: "Tokens Created", value: "10,000+", icon: Coins },
-  { label: "Active Users", value: "5,000+", icon: Users },
-  { label: "Total Value Locked", value: "$50M+", icon: TrendingUp },
-  { label: "Uptime", value: "99.9%", icon: Zap },
+  { label: "Simple Interface", value: "No Code", icon: Coins },
+  { label: "Fast Creation", value: "<5 min", icon: Zap },
+  { label: "Network", value: "Solana", icon: TrendingUp },
+  { label: "Token Standard", value: "SPL", icon: Shield },
 ];
 
 const features = [
@@ -81,27 +81,6 @@ const useCases = [
     title: "Gaming Assets",
     description: "Create in-game currencies and tradeable assets for web3 games and metaverse projects.",
     icon: Layers,
-  },
-];
-
-const testimonials = [
-  {
-    quote: "MintPanel made token creation incredibly simple. What would have taken days was done in minutes.",
-    author: "Sarah Chen",
-    role: "Founder, DeFi Protocol",
-    avatar: "SC",
-  },
-  {
-    quote: "The best token creation platform on Solana. Clean UI, great documentation, and instant deployment.",
-    author: "Marcus Johnson",
-    role: "Blockchain Developer",
-    avatar: "MJ",
-  },
-  {
-    quote: "Finally, a no-code solution that actually works. Created our community token without writing a single line of code.",
-    author: "Priya Patel",
-    role: "Community Manager",
-    avatar: "PP",
   },
 ];
 
@@ -329,55 +308,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 md:py-28">
-        <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Loved by Creators Worldwide</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of satisfied users who have launched successful tokens
-            </p>
-          </motion.div>
-
-          <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
-            {testimonials.map((testimonial, i) => (
-              <motion.div
-                key={testimonial.author}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="h-full">
-                  <CardContent className="pt-6">
-                    <div className="flex gap-1 mb-4">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-accent text-accent" />
-                      ))}
-                    </div>
-                    <p className="text-muted-foreground mb-6 italic">"{testimonial.quote}"</p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center font-semibold text-accent">
-                        {testimonial.avatar}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-sm">{testimonial.author}</div>
-                        <div className="text-xs text-muted-foreground">{testimonial.role}</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
       <section className="py-20 bg-gradient-to-b from-secondary/20 to-background">
         <div className="container">
@@ -477,7 +407,7 @@ export default function HomePage() {
               Ready to Launch Your Token?
             </h2>
             <p className="text-xl text-muted-foreground mb-10">
-              Join thousands of creators who have already launched successful tokens on Solana
+              Start building on Solana with our simple, no-code token creation platform
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" className="text-lg px-8 h-12" asChild>
