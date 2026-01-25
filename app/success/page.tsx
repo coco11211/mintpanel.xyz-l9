@@ -24,15 +24,23 @@ export default async function SuccessPage({
       ? params?.sig[0]
       : ""
 
-  const cluster = "devnet"
-  const txUrl = sig ? `https://explorer.solana.com/tx/${sig}?cluster=${cluster}` : ""
-  const mintUrl = mint ? `https://explorer.solana.com/address/${mint}?cluster=${cluster}` : ""
+  const network =
+    typeof params?.network === "string"
+      ? params?.network
+      : Array.isArray(params?.network)
+      ? params?.network[0]
+      : "devnet"
+
+  const clusterParam = network === "mainnet-beta" ? "" : "?cluster=devnet"
+  const networkLabel = network === "mainnet-beta" ? "Mainnet" : "Devnet"
+  const txUrl = sig ? `https://explorer.solana.com/tx/${sig}${clusterParam}` : ""
+  const mintUrl = mint ? `https://explorer.solana.com/address/${mint}${clusterParam}` : ""
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12 space-y-8">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold">Token Created Successfully</h1>
-        <p className="text-gray-600">Your token was created on Solana.</p>
+        <p className="text-gray-600">Your token was created on Solana {networkLabel}.</p>
       </header>
 
       <section className="rounded-xl border p-4 space-y-2">

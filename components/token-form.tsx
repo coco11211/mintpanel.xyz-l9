@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, AlertTriangle, Loader2 } from "lucide-react"
 import { useCreateToken } from "@/hooks/use-create-token"
+import { useNetwork } from "@/contexts/NetworkContext"
 
 export type Plan = "basic" | "advanced"
 
@@ -37,6 +38,7 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
   const router = useRouter()
   const { connected, publicKey } = useWallet()
   const { setVisible } = useWalletModal()
+  const { network } = useNetwork()
   const { createToken, isCreating, result, error, reset } = useCreateToken()
 
   // Redirect to success page when token is created
@@ -49,10 +51,11 @@ export function TokenForm({ initialPlan = "basic" }: TokenFormProps) {
         symbol: result.symbol || "",
         mintRevoked: result.mintAuthorityRevoked ? "true" : "false",
         freezeRevoked: result.freezeAuthorityRevoked ? "true" : "false",
+        network: network,
       })
       router.push(`/success?${params.toString()}`)
     }
-  }, [result, router])
+  }, [result, router, network])
 
   const [formData, setFormData] = useState<TokenFormData>({
     name: "",
