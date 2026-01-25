@@ -86,9 +86,9 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
         </div>
 
         <div className="flex gap-2">
-          <button className={`rounded-xl border px-4 py-2 text-sm ${tab==="supply" ? "bg-black text-white" : ""}`} onClick={() => setTab("supply")}>Supply</button>
-          <button className={`rounded-xl border px-4 py-2 text-sm ${tab==="freeze" ? "bg-black text-white" : ""}`} onClick={() => setTab("freeze")}>Freeze</button>
-          <button className={`rounded-xl border px-4 py-2 text-sm ${tab==="metadata" ? "bg-black text-white" : ""}`} onClick={() => setTab("metadata")}>Metadata</button>
+          <button className={`rounded-xl border-2 px-4 py-2 text-sm font-medium cursor-pointer transition-colors ${tab==="supply" ? "bg-black text-white border-black" : "border-gray-300 hover:border-black hover:bg-gray-50"}`} onClick={() => setTab("supply")}>Supply</button>
+          <button className={`rounded-xl border-2 px-4 py-2 text-sm font-medium cursor-pointer transition-colors ${tab==="freeze" ? "bg-black text-white border-black" : "border-gray-300 hover:border-black hover:bg-gray-50"}`} onClick={() => setTab("freeze")}>Freeze</button>
+          <button className={`rounded-xl border-2 px-4 py-2 text-sm font-medium cursor-pointer transition-colors ${tab==="metadata" ? "bg-black text-white border-black" : "border-gray-300 hover:border-black hover:bg-gray-50"}`} onClick={() => setTab("metadata")}>Metadata</button>
         </div>
 
         {tab === "supply" && (
@@ -99,7 +99,7 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
                 <div className="flex gap-2">
                   <input className="flex-1 rounded-xl border px-3 py-2" placeholder="Amount" value={mintAmt} onChange={(e) => setMintAmt(e.target.value)} />
                   <button
-                    className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60"
+                    className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60 hover:bg-gray-800 transition-colors cursor-pointer font-medium"
                     disabled={busy || !publicKey}
                     onClick={async () => {
                       try {
@@ -132,7 +132,7 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
                 <div className="flex gap-2">
                   <input className="flex-1 rounded-xl border px-3 py-2" placeholder="Amount" value={burnAmt} onChange={(e) => setBurnAmt(e.target.value)} />
                   <button
-                    className="rounded-xl border px-4 py-2 disabled:opacity-60"
+                    className="rounded-xl border-2 border-black px-4 py-2 disabled:opacity-60 hover:bg-gray-100 transition-colors cursor-pointer font-medium"
                     disabled={busy || !publicKey}
                     onClick={async () => {
                       try {
@@ -168,7 +168,7 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
             <div className="text-sm font-medium">Freeze / Thaw an owner’s token account</div>
             <input className="w-full rounded-xl border px-3 py-2" placeholder="Owner wallet address" value={targetOwner} onChange={(e) => setTargetOwner(e.target.value)} />
             <div className="flex gap-2">
-              <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
+              <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60 hover:bg-gray-800 transition-colors cursor-pointer font-medium" disabled={busy || !publicKey} onClick={async () => {
                 try {
                   if (!targetOwner.trim()) {
                     alert("Please enter a wallet address")
@@ -182,7 +182,7 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
                   alert(`Freeze failed: ${err?.message || err}`)
                 }
               }}>{busy ? "Processing..." : "Freeze"}</button>
-              <button className="rounded-xl border px-4 py-2 disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
+              <button className="rounded-xl border-2 border-black px-4 py-2 disabled:opacity-60 hover:bg-gray-100 transition-colors cursor-pointer font-medium" disabled={busy || !publicKey} onClick={async () => {
                 try {
                   if (!targetOwner.trim()) {
                     alert("Please enter a wallet address")
@@ -209,7 +209,7 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
               <input className="w-full rounded-xl border px-3 py-2" placeholder="Symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} />
               <input className="w-full rounded-xl border px-3 py-2" placeholder="Metadata URI (https://...)" value={uri} onChange={(e) => setUri(e.target.value)} />
             </div>
-            <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
+            <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60 hover:bg-gray-800 transition-colors cursor-pointer font-medium" disabled={busy || !publicKey} onClick={async () => {
               try {
                 if (!name.trim() || !symbol.trim() || !uri.trim()) {
                   alert("Please fill in all fields (name, symbol, and URI)")
