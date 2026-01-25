@@ -43,6 +43,12 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10 space-y-6">
+      {!publicKey && (
+        <div className="rounded-xl border-2 border-yellow-400 bg-yellow-50 p-4 text-center">
+          <p className="text-sm font-medium text-yellow-800">Please connect your wallet to manage this token</p>
+        </div>
+      )}
+
       <header className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">Manage Token</h1>
@@ -97,15 +103,25 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
                     disabled={busy || !publicKey}
                     onClick={async () => {
                       try {
+                        if (!mintAmt.trim()) {
+                          alert("Please enter an amount to mint")
+                          return
+                        }
                         const amt = toBigIntAmount(mintAmt, decimals)
+                        if (amt === 0n) {
+                          alert("Amount must be greater than 0")
+                          return
+                        }
+                        console.log("Minting", amt.toString(), "base units...")
                         await mintMore(amt)
                         setMintAmt("")
-                      } catch (err) {
+                      } catch (err: any) {
                         console.error("Mint error:", err)
+                        alert(`Mint failed: ${err?.message || err}`)
                       }
                     }}
                   >
-                    Mint
+                    {busy ? "Processing..." : "Mint"}
                   </button>
                 </div>
                 <div className="text-xs text-gray-600">Requires your wallet is the mint authority.</div>
@@ -120,15 +136,25 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
                     disabled={busy || !publicKey}
                     onClick={async () => {
                       try {
+                        if (!burnAmt.trim()) {
+                          alert("Please enter an amount to burn")
+                          return
+                        }
                         const amt = toBigIntAmount(burnAmt, decimals)
+                        if (amt === 0n) {
+                          alert("Amount must be greater than 0")
+                          return
+                        }
+                        console.log("Burning", amt.toString(), "base units...")
                         await burnMine(amt)
                         setBurnAmt("")
-                      } catch (err) {
+                      } catch (err: any) {
                         console.error("Burn error:", err)
+                        alert(`Burn failed: ${err?.message || err}`)
                       }
                     }}
                   >
-                    Burn
+                    {busy ? "Processing..." : "Burn"}
                   </button>
                 </div>
                 <div className="text-xs text-gray-600">Burns tokens from your associated token account.</div>
@@ -144,20 +170,32 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
             <div className="flex gap-2">
               <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
                 try {
+                  if (!targetOwner.trim()) {
+                    alert("Please enter a wallet address")
+                    return
+                  }
+                  console.log("Freezing account for owner:", targetOwner)
                   await freezeOwner(targetOwner)
                   setTargetOwner("")
-                } catch (err) {
+                } catch (err: any) {
                   console.error("Freeze error:", err)
+                  alert(`Freeze failed: ${err?.message || err}`)
                 }
-              }}>Freeze</button>
+              }}>{busy ? "Processing..." : "Freeze"}</button>
               <button className="rounded-xl border px-4 py-2 disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
                 try {
+                  if (!targetOwner.trim()) {
+                    alert("Please enter a wallet address")
+                    return
+                  }
+                  console.log("Thawing account for owner:", targetOwner)
                   await thawOwner(targetOwner)
                   setTargetOwner("")
-                } catch (err) {
+                } catch (err: any) {
                   console.error("Thaw error:", err)
+                  alert(`Thaw failed: ${err?.message || err}`)
                 }
-              }}>Thaw</button>
+              }}>{busy ? "Processing..." : "Thaw"}</button>
             </div>
             <div className="text-xs text-gray-600">Requires your wallet is the freeze authority.</div>
           </div>
@@ -173,27 +211,34 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
             </div>
             <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
               try {
+                if (!name.trim() || !symbol.trim() || !uri.trim()) {
+                  alert("Please fill in all fields (name, symbol, and URI)")
+                  return
+                }
+                console.log("Updating metadata:", { name, symbol, uri })
                 await updateMetadata({ name, symbol, uri })
                 setName("")
                 setSymbol("")
                 setUri("")
-              } catch (err) {
+              } catch (err: any) {
                 console.error("Update metadata error:", err)
+                alert(`Update metadata failed: ${err?.message || err}`)
               }
             }}>
-              Update
+              {busy ? "Processing..." : "Update"}
             </button>
             <div className="text-xs text-gray-600">Requires your wallet is the update authority.</div>
           </div>
         )}
       </section>
 
-      {(error || lastSig) && (
+      {(error || lastSig || busy) && (
         <section className="rounded-2xl border p-4 space-y-2">
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {busy && <div className="text-sm text-blue-600">Processing transaction...</div>}
+          {error && <div className="text-sm text-red-600 font-medium bg-red-50 p-3 rounded">{error}</div>}
           {lastSig && (
-            <div className="text-sm">
-              Last tx: <a className="underline" href={explorerSig} target="_blank" rel="noreferrer">{lastSig}</a>
+            <div className="text-sm text-green-600 font-medium bg-green-50 p-3 rounded">
+              Success! Transaction: <a className="underline" href={explorerSig} target="_blank" rel="noreferrer">{lastSig}</a>
             </div>
           )}
         </section>
