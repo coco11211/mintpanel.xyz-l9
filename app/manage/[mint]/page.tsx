@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
 import { useManageToken } from "@/hooks/use-manage-token"
+import { useNetwork } from "@/contexts/NetworkContext"
 
 function toBigIntAmount(amount: string, decimals: number) {
   const a = amount.trim()
@@ -22,6 +23,7 @@ function Pill({ children }: { children: React.ReactNode }) {
 export default function ManageTokenPage({ params }: { params: { mint: string } }) {
   const mintStr = params.mint
   const { publicKey } = useWallet()
+  const { network } = useNetwork()
   const { busy, lastSig, error, mintMore, burnMine, freezeOwner, thawOwner, updateMetadata } = useManageToken(mintStr)
 
   const [tab, setTab] = useState<"supply" | "freeze" | "metadata">("supply")
@@ -35,8 +37,9 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
   const [symbol, setSymbol] = useState("")
   const [uri, setUri] = useState("")
 
-  const explorerMint = useMemo(() => `https://explorer.solana.com/address/${mintStr}?cluster=devnet`, [mintStr])
-  const explorerSig = useMemo(() => lastSig ? `https://explorer.solana.com/tx/${lastSig}?cluster=devnet` : "", [lastSig])
+  const clusterParam = network === "mainnet-beta" ? "" : "?cluster=devnet"
+  const explorerMint = useMemo(() => `https://explorer.solana.com/address/${mintStr}${clusterParam}`, [mintStr, clusterParam])
+  const explorerSig = useMemo(() => lastSig ? `https://explorer.solana.com/tx/${lastSig}${clusterParam}` : "", [lastSig, clusterParam])
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10 space-y-6">
@@ -47,7 +50,7 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
             Mint: <a className="underline" href={explorerMint} target="_blank" rel="noreferrer">{mintStr}</a>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Pill>Devnet</Pill>
+            <Pill>{network === "mainnet-beta" ? "Mainnet" : "Devnet"}</Pill>
             {publicKey ? <Pill>Wallet connected</Pill> : <Pill>Connect wallet to use actions</Pill>}
           </div>
           <div className="text-sm">
@@ -93,8 +96,13 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
                     className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60"
                     disabled={busy || !publicKey}
                     onClick={async () => {
-                      const amt = toBigIntAmount(mintAmt, decimals)
-                      await mintMore(amt)
+                      try {
+                        const amt = toBigIntAmount(mintAmt, decimals)
+                        await mintMore(amt)
+                        setMintAmt("")
+                      } catch (err) {
+                        console.error("Mint error:", err)
+                      }
                     }}
                   >
                     Mint
@@ -111,8 +119,13 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
                     className="rounded-xl border px-4 py-2 disabled:opacity-60"
                     disabled={busy || !publicKey}
                     onClick={async () => {
-                      const amt = toBigIntAmount(burnAmt, decimals)
-                      await burnMine(amt)
+                      try {
+                        const amt = toBigIntAmount(burnAmt, decimals)
+                        await burnMine(amt)
+                        setBurnAmt("")
+                      } catch (err) {
+                        console.error("Burn error:", err)
+                      }
                     }}
                   >
                     Burn
@@ -129,8 +142,22 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
             <div className="text-sm font-medium">Freeze / Thaw an owner’s token account</div>
             <input className="w-full rounded-xl border px-3 py-2" placeholder="Owner wallet address" value={targetOwner} onChange={(e) => setTargetOwner(e.target.value)} />
             <div className="flex gap-2">
-              <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={() => freezeOwner(targetOwner)}>Freeze</button>
-              <button className="rounded-xl border px-4 py-2 disabled:opacity-60" disabled={busy || !publicKey} onClick={() => thawOwner(targetOwner)}>Thaw</button>
+              <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
+                try {
+                  await freezeOwner(targetOwner)
+                  setTargetOwner("")
+                } catch (err) {
+                  console.error("Freeze error:", err)
+                }
+              }}>Freeze</button>
+              <button className="rounded-xl border px-4 py-2 disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
+                try {
+                  await thawOwner(targetOwner)
+                  setTargetOwner("")
+                } catch (err) {
+                  console.error("Thaw error:", err)
+                }
+              }}>Thaw</button>
             </div>
             <div className="text-xs text-gray-600">Requires your wallet is the freeze authority.</div>
           </div>
@@ -144,7 +171,16 @@ export default function ManageTokenPage({ params }: { params: { mint: string } }
               <input className="w-full rounded-xl border px-3 py-2" placeholder="Symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} />
               <input className="w-full rounded-xl border px-3 py-2" placeholder="Metadata URI (https://...)" value={uri} onChange={(e) => setUri(e.target.value)} />
             </div>
-            <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={() => updateMetadata({ name, symbol, uri })}>
+            <button className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-60" disabled={busy || !publicKey} onClick={async () => {
+              try {
+                await updateMetadata({ name, symbol, uri })
+                setName("")
+                setSymbol("")
+                setUri("")
+              } catch (err) {
+                console.error("Update metadata error:", err)
+              }
+            }}>
               Update
             </button>
             <div className="text-xs text-gray-600">Requires your wallet is the update authority.</div>
